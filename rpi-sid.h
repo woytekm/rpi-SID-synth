@@ -71,14 +71,16 @@ typedef struct  _SID_msg_queue_t{
         SID_msg_t SID_msg_pipe[SID_MSG_QUEUE_LEN];
        } SID_msg_queue_t;
 
-typedef struct _I2C_data_t {
-        uint16_t i2c_descriptor;
-        uint8_t chip_addr;
-       } I2C_data_t;
-
 SID_msg_queue_t global_SID_msg_queue;
+
 uint8_t global_i2c_1_descriptor;
 uint8_t global_i2c_1_io;
+
+//synth data structures
+
+uint16_t software_LFO1_rate;
+uint8_t  software_LFO1_wave;
+uint8_t  software_LFO1_routing;
 
 // prototypes
 
@@ -86,5 +88,7 @@ int SID_via_tca6416_reset(uint8_t i2c_dev, uint8_t ic_addr);
 int SID_via_tca6416_write(uint8_t i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data);
 int SID_write_msg(uint8_t i2c_dev, uint8_t ic_addr, SID_msg_t *SID_msg);
 int SID_play_note(uint16_t note, uint8_t len, uint8_t bpm);
+int SID_queue_one_msg(SID_msg_queue_t *queue, SID_msg_t *SID_msg);
+SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue);
 
 //end

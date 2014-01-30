@@ -33,15 +33,16 @@ int main() {
     //reset SID
     SID_via_tca6416_reset(global_i2c_1_descriptor, global_i2c_1_io);
 
+    //start various synth threads 
     SID_synth_threads_init();
 
     //set sound parameters
-    SID_msg.addr = 5; SID_msg.data = 9;
-    SID_queue_one_msg(&SID_msg);
-    SID_msg.addr = 6; SID_msg.data = 0;
-    SID_queue_one_msg(&SID_msg);
-    SID_msg.addr = 24; SID_msg.data = 15;
-    SID_queue_one_msg(&SID_msg);
+    SID_msg.addr = SID_OSC1_ATTACK; SID_msg.data = 9;
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
+    SID_msg.addr = SID_OSC1_SUSTAIN; SID_msg.data = 0;
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
+    SID_msg.addr = SID_FTL_MODE_VOL; SID_msg.data = 31;
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
     //play some note pattern
     while(counter < 100)

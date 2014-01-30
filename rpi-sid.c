@@ -17,6 +17,11 @@
 #include "tca6416a.h"
 
 
+void software_LFO()
+ {
+
+ }
+
 SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue)
  {
 
@@ -39,14 +44,14 @@ SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue)
 int SID_queue_one_msg(SID_msg_queue_t *queue, SID_msg_t *SID_msg)
  {
   
-   while((queue->wpos == SID_MSG_QUEUE_LEN) && (queue->rpos == 0))
+   if((queue->wpos == SID_MSG_QUEUE_LEN) && (queue->rpos == 0))
     { 
       if(SID_DEBUG)
        printf("SID_queue_one_msg: error: cannot queue more messages! queue overflow!\n");
       return -1;
     }
 
-   while(queue->wpos == (queue->rpos - 1))
+   if(queue->wpos == (queue->rpos - 1))
     {
       if(SID_DEBUG)
        printf("SID_queue_one_msg: error: cannot queue more messages! we are just behind dequeuing pointer!\n");
@@ -55,7 +60,7 @@ int SID_queue_one_msg(SID_msg_queue_t *queue, SID_msg_t *SID_msg)
 
    if(queue->wpos == SID_MSG_QUEUE_LEN)
     queue->wpos = 0;
-
+   
    memcpy(&queue->SID_msg_pipe[queue->wpos], SID_msg, sizeof(SID_msg_t));
 
    queue->wpos++;
@@ -92,14 +97,17 @@ void SID_msg_pipe_tx(void *arg)  //thread
 int SID_synth_threads_init(void)
 {
 
-   pthread_t threads[2];
+   #define SYNTH_THREADS 10
 
+   pthread_t threads[SYNTH_THREADS];
    int rc;
    long t;
+   
+   //here we will start various threads such as: message queue tx, software LFO's, MIDI IN routine, etc...
 
    global_SID_msg_queue.rpos = 0;
    global_SID_msg_queue.wpos = 0;
-
+   
    rc = pthread_create(&threads[0], NULL, SID_msg_pipe_tx, (void *)t);
 
 }
@@ -133,8 +141,8 @@ int SID_via_tca6416_reset(uint8_t i2c_dev, uint8_t ic_addr)
 int SID_via_tca6416_write(uint8_t i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data)
  {
 
-  uint8_t cshi_rsthi_mask=160; // CS = 1, RST = 1, [101xxxxx] where x = data bits
-  uint8_t cslo_rsthi_mask=32;  // CS = 0, RST = 1, [001xxxxx] where x = data bits
+  uint8_t cshi_rsthi_mask=160; // CS = 1, RST = 1, [101xxxxx] where x = address bits
+  uint8_t cslo_rsthi_mask=32;  // CS = 0, RST = 1, [001xxxxx] where x = address bits
  
   uint8_t out_addr = 0; 
 
@@ -195,12 +203,12 @@ int SID_play_note(uint16_t note, uint8_t len, uint8_t bpm)
 
   note_duration = (note_len_divider[len] * 1000000) / bpm;
 
-  SID_msg.addr = 0; 
+  SID_msg.addr = SID_OSC1_FREQ_LO; 
   SID_msg.data = note;
   
   SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
-  SID_msg.addr = 4;
+  SID_msg.addr = SID_OSC1_CTRL;
   SID_msg.data = 17;
 
   SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
