@@ -18,38 +18,42 @@ int main() {
     i2c_debug = 0;
     SID_msg_t SID_msg;
 
+    global_i2c_1_io = TCA6416A_I2C_ADDR_LO;
+     
     // Open a connection to the I2C userspace control file.
-    if ((i2c_dev = open(I2C_FILE_NAME, O_RDWR)) < 0) {
+    if ((global_i2c_1_descriptor = open(I2C_FILE_NAME, O_RDWR)) < 0) {
         perror("Unable to open i2c control file");
         exit(1);
     }
 
     //set all lines of TCA6416A to output  
-    set_i2c_register(i2c_dev, TCA6416A_I2C_ADDR_LO, TCA6416A_CONFIG_BANK_0, 0);
-    set_i2c_register(i2c_dev, TCA6416A_I2C_ADDR_LO, TCA6416A_CONFIG_BANK_1, 0);
+    set_i2c_register(global_i2c_1_descriptor, global_i2c_1_io, TCA6416A_CONFIG_BANK_0, 0);
+    set_i2c_register(global_i2c_1_descriptor, global_i2c_1_io, TCA6416A_CONFIG_BANK_1, 0);
 
     //reset SID
-    SID_via_tca6416_reset(i2c_dev,TCA6416A_I2C_ADDR_LO);
+    SID_via_tca6416_reset(global_i2c_1_descriptor, global_i2c_1_io);
+
+    SID_synth_threads_init();
 
     //set sound parameters
     SID_msg.addr = 5; SID_msg.data = 9;
-    SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg);
+    SID_queue_one_msg(&SID_msg);
     SID_msg.addr = 6; SID_msg.data = 0;
-    SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg);
+    SID_queue_one_msg(&SID_msg);
     SID_msg.addr = 24; SID_msg.data = 15;
-    SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg);
+    SID_queue_one_msg(&SID_msg);
 
     //play some note pattern
     while(counter < 100)
      {
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x1464, NOTE_EIGHTH ,BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x1464, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x1464, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(i2c_dev,TCA6416A_I2C_ADDR_LO, 0x16e3, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x1464, NOTE_EIGHTH ,BPM120);
+       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x1464, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x1464, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x16e3, NOTE_EIGHTH, BPM120);
        counter++;
      }
 

@@ -4,8 +4,11 @@
 
 #include <stdint.h>
 
+#ifndef SID_DEBUG
+
 #define SID_DEBUG 0
 
+#endif
 
 #define SID_OSC1_FREQ_LO 0
 #define SID_OSC1_FREQ_HI 1
@@ -41,6 +44,7 @@
 #define SID_OSC3 27
 #define SID_ENV3 28
 
+#define SID_MSG_QUEUE_LEN 64
 
 //some basic note and tempo definitions (mainly for testing purposes)
 
@@ -61,11 +65,26 @@ typedef struct _SID_msg {
         uint8_t prio;
        } SID_msg_t;
 
-SID_msg_t SID_msg_pipe[32];
+typedef struct  _SID_msg_queue_t{
+        uint16_t rpos;
+        uint16_t wpos;
+        SID_msg_t SID_msg_pipe[SID_MSG_QUEUE_LEN];
+       } SID_msg_queue_t;
 
-int SID_via_tca6416_reset(int i2c_dev, uint8_t ic_addr);
-int SID_via_tca6416_write(int i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data);
-int SID_write_msg(int i2c_dev, uint8_t ic_addr, SID_msg_t SID_msg);
-int SID_play_note(int i2c_dev, uint8_t ic_addr, uint16_t note, uint8_t len, uint8_t bpm);
+typedef struct _I2C_data_t {
+        uint16_t i2c_descriptor;
+        uint8_t chip_addr;
+       } I2C_data_t;
+
+SID_msg_queue_t global_SID_msg_queue;
+uint8_t global_i2c_1_descriptor;
+uint8_t global_i2c_1_io;
+
+// prototypes
+
+int SID_via_tca6416_reset(uint8_t i2c_dev, uint8_t ic_addr);
+int SID_via_tca6416_write(uint8_t i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data);
+int SID_write_msg(uint8_t i2c_dev, uint8_t ic_addr, SID_msg_t *SID_msg);
+int SID_play_note(uint16_t note, uint8_t len, uint8_t bpm);
 
 //end

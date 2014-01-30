@@ -8,12 +8,104 @@
 //
 
 #include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <pthread.h>
+
 #include "rpi-sid.h"
 #include "i2c_lib.h"
 #include "tca6416a.h"
 
 
-int SID_via_tca6416_reset(int i2c_dev, uint8_t ic_addr)
+SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue)
+ {
+
+  if(queue->rpos == queue->wpos)
+   return NULL;
+
+  if(queue->rpos == SID_MSG_QUEUE_LEN)
+   queue->rpos = 0;
+ 
+  queue->rpos++;
+
+  if(SID_DEBUG)
+   printf("SID_dequeue_one_msg: dequeued one SID msg on pos %d (%x, %x)\n", 
+           queue->rpos-1, queue->SID_msg_pipe[queue->rpos-1].addr, queue->SID_msg_pipe[queue->rpos-1].data);
+  return &queue->SID_msg_pipe[queue->rpos-1];
+
+ }
+
+
+int SID_queue_one_msg(SID_msg_queue_t *queue, SID_msg_t *SID_msg)
+ {
+  
+   while((queue->wpos == SID_MSG_QUEUE_LEN) && (queue->rpos == 0))
+    { 
+      if(SID_DEBUG)
+       printf("SID_queue_one_msg: error: cannot queue more messages! queue overflow!\n");
+      return -1;
+    }
+
+   while(queue->wpos == (queue->rpos - 1))
+    {
+      if(SID_DEBUG)
+       printf("SID_queue_one_msg: error: cannot queue more messages! we are just behind dequeuing pointer!\n");
+      return -1;
+    }
+
+   if(queue->wpos == SID_MSG_QUEUE_LEN)
+    queue->wpos = 0;
+
+   memcpy(&queue->SID_msg_pipe[queue->wpos], SID_msg, sizeof(SID_msg_t));
+
+   queue->wpos++;
+
+   if(SID_DEBUG)
+    printf("SID_queue_one_msg: queued msg on pos %d (%x, %x)\n",queue->wpos-1,SID_msg->addr, SID_msg->data);
+
+   return 0;
+ }
+
+
+void SID_msg_pipe_tx(void *arg)  //thread
+{
+
+  uint16_t dequeued = 0;
+  SID_msg_t *SID_msg_out;
+
+  while( 1 )
+   {
+    usleep(10);
+
+    SID_msg_out = SID_dequeue_one_msg(&global_SID_msg_queue);
+
+    if(SID_msg_out != NULL)
+     {
+      SID_write_msg(global_i2c_1_descriptor, global_i2c_1_io, SID_msg_out);
+      dequeued++;
+     }
+
+   }
+
+}
+
+int SID_synth_threads_init(void)
+{
+
+   pthread_t threads[2];
+
+   int rc;
+   long t;
+
+   global_SID_msg_queue.rpos = 0;
+   global_SID_msg_queue.wpos = 0;
+
+   rc = pthread_create(&threads[0], NULL, SID_msg_pipe_tx, (void *)t);
+
+}
+
+
+int SID_via_tca6416_reset(uint8_t i2c_dev, uint8_t ic_addr)
  {
 
     if(SID_DEBUG)
@@ -38,9 +130,9 @@ int SID_via_tca6416_reset(int i2c_dev, uint8_t ic_addr)
 // and then writing result to I2C.
 //
 
-int SID_via_tca6416_write(int i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data)
+int SID_via_tca6416_write(uint8_t i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data)
  {
- 
+
   uint8_t cshi_rsthi_mask=160; // CS = 1, RST = 1, [101xxxxx] where x = data bits
   uint8_t cslo_rsthi_mask=32;  // CS = 0, RST = 1, [001xxxxx] where x = data bits
  
@@ -70,28 +162,33 @@ int SID_via_tca6416_write(int i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t da
  }
 
 
-int SID_write_msg(int i2c_dev, uint8_t ic_addr, SID_msg_t SID_msg)
+int SID_write_msg(uint8_t i2c_dev, uint8_t ic_addr, SID_msg_t *SID_msg)
  {
+
    uint8_t msg_byte_lo, msg_byte_hi;
    uint16_t bit_mask = 255;
 
-   msg_byte_lo = bit_mask & SID_msg.data;
-   msg_byte_hi = SID_msg.data >> 8;
+   msg_byte_lo = bit_mask & SID_msg->data;
+   msg_byte_hi = SID_msg->data >> 8;
 
-   if(SID_msg.data > 255)
+   if(SID_DEBUG)
+    printf("SID_write_msg: about to write %x, %x into SID...",SID_msg->data, SID_msg->addr);
+
+   if(SID_msg->data > 255)
     {
-     SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg.addr, msg_byte_lo);
-     SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg.addr+1, msg_byte_hi);
+     SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg->addr, msg_byte_lo);
+     SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg->addr+1, msg_byte_hi);
     }
    else
-    SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg.addr, msg_byte_lo);
+    SID_via_tca6416_write(i2c_dev, ic_addr, SID_msg->addr, msg_byte_lo);
 
    return 0;
  }
 
 
-int SID_play_note(int i2c_dev, uint8_t ic_addr, uint16_t note, uint8_t len, uint8_t bpm)
+int SID_play_note(uint16_t note, uint8_t len, uint8_t bpm)
  {
+
   SID_msg_t SID_msg;
   uint32_t note_duration;
   int note_len_divider[4] = {120,60,30,15};
@@ -101,17 +198,17 @@ int SID_play_note(int i2c_dev, uint8_t ic_addr, uint16_t note, uint8_t len, uint
   SID_msg.addr = 0; 
   SID_msg.data = note;
   
-  SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg );
+  SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
   SID_msg.addr = 4;
   SID_msg.data = 17;
 
-  SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg );
+  SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
   usleep(note_duration);
 
   SID_msg.data = 16;
-  SID_write_msg(i2c_dev,TCA6416A_I2C_ADDR_LO, SID_msg );
+  SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
   return 0;
  }
 
