@@ -37,7 +37,7 @@
 #define SID_FLT_CUTTOF_LO 21
 #define SID_FLT_CUTTOF_HI 22
 #define SID_FLT_RESO_ROUTE 23
-#define SID_FTL_MODE_VOL 24
+#define SID_FLT_MODE_VOL 24
 
 #define SID_POTX 25
 #define SID_POTY 26
@@ -53,6 +53,7 @@
 #define NOTE_EIGHTH 2
 #define NOTE_SIXTEENTH 3
 
+#define BPM160 160
 #define BPM120 120
 #define BPM100 100
 #define BPM60 60

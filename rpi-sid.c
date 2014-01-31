@@ -20,6 +20,41 @@
 void software_LFO()
  {
 
+  // software LFO proof of concept:
+  // most simple triangle wave LFO modulating filter cutoff
+
+  SID_msg_t SID_LFO_msg_hi;
+  SID_msg_t SID_LFO_msg_lo;
+  int amplitude = 0;
+  int step = 2;
+  int counter = 0;
+  int step_interval = 100000;
+
+  SID_LFO_msg_hi.addr = SID_FLT_CUTTOF_HI;
+  SID_LFO_msg_lo.addr = SID_FLT_CUTTOF_LO;
+
+  while(1)
+   {
+
+    usleep(step_interval);
+
+    amplitude += step;
+
+    if(amplitude == 40)
+     step = -1;
+    if(amplitude == 0)
+     step = 1;
+ 
+    counter++;
+
+    SID_LFO_msg_hi.data = amplitude;
+    SID_LFO_msg_lo.data = amplitude;
+
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_LFO_msg_hi);
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_LFO_msg_lo);
+
+   }
+
  }
 
 SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue)
@@ -109,6 +144,7 @@ int SID_synth_threads_init(void)
    global_SID_msg_queue.wpos = 0;
    
    rc = pthread_create(&threads[0], NULL, SID_msg_pipe_tx, (void *)t);
+   rc = pthread_create(&threads[1], NULL, software_LFO, (void *)t);
 
 }
 

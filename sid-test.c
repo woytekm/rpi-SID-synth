@@ -41,20 +41,26 @@ int main() {
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
     SID_msg.addr = SID_OSC1_SUSTAIN; SID_msg.data = 0;
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
-    SID_msg.addr = SID_FTL_MODE_VOL; SID_msg.data = 31;
+    SID_msg.addr = SID_FLT_MODE_VOL; SID_msg.data = 31;
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
+
+    SID_msg.addr = SID_FLT_MODE_VOL; SID_msg.data = 31;
+    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
+
+    SID_msg.addr = SID_FLT_RESO_ROUTE; SID_msg.data = 17;
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
     //play some note pattern
     while(counter < 100)
      {
-       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x1464, NOTE_EIGHTH ,BPM120);
-       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x1464, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x1464, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x133f, NOTE_EIGHTH, BPM120);
-       SID_play_note(0x16e3, NOTE_EIGHTH, BPM120);
+       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0893, NOTE_EIGHTH ,BPM160);
+       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
        counter++;
      }
 
