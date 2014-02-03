@@ -17,21 +17,19 @@
 #include "tca6416a.h"
 
 
-void software_LFO()
+void SID_init_synth(void)
+ {
+  software_LFO1_routing = software_LFO1_routing|LFO_ROUTING_CUTOFF;
+  software_LFO2_routing = LFO_ROUTING_NONE;
+ }
+
+
+void software_LFO1(void)
  {
 
-  // software LFO proof of concept:
-  // most simple triangle wave LFO modulating filter cutoff
-
-  SID_msg_t SID_LFO_msg_hi;
-  SID_msg_t SID_LFO_msg_lo;
-  int amplitude = 0;
-  int step = 2;
-  int counter = 0;
-  int step_interval = 100000;
-
-  SID_LFO_msg_hi.addr = SID_FLT_CUTTOF_HI;
-  SID_LFO_msg_lo.addr = SID_FLT_CUTTOF_LO;
+  uint16_t amplitude = 0;
+  uint32_t step_interval = 100000;
+  int step = 1;
 
   while(1)
    {
@@ -40,22 +38,83 @@ void software_LFO()
 
     amplitude += step;
 
-    if(amplitude == 40)
+    if(amplitude == 255)
+     step = -1;
+    if(amplitude == 0)
+     step = 1;
+
+    if(software_LFO1_routing|LFO_ROUTING_CUTOFF)
+     SID_apply_filter_cutoff(amplitude);
+
+    if(software_LFO1_routing|LFO_ROUTING_RESO)
+     SID_apply_filter_resonance(amplitude/16);
+   }
+
+ }
+
+void software_LFO2(void)
+ {
+
+  uint16_t amplitude = 0;
+  uint32_t step_interval = 100000;
+  int step = 1;
+
+  while(1)
+   {
+
+    usleep(step_interval);
+
+    amplitude += step;
+
+    if(amplitude == 255)
      step = -1;
     if(amplitude == 0)
      step = 1;
  
-    counter++;
+    if(software_LFO2_routing|LFO_ROUTING_CUTOFF)
+     SID_apply_filter_cutoff(amplitude);
 
-    SID_LFO_msg_hi.data = amplitude;
-    SID_LFO_msg_lo.data = amplitude;
-
-    SID_queue_one_msg(&global_SID_msg_queue, &SID_LFO_msg_hi);
-    SID_queue_one_msg(&global_SID_msg_queue, &SID_LFO_msg_lo);
+    if(software_LFO2_routing|LFO_ROUTING_RESO)
+     SID_apply_filter_resonance(amplitude/16);
 
    }
 
  }
+
+
+int SID_apply_filter_cutoff(uint16_t cutoff_value)
+ {
+  uint8_t cutoff_lo, cutoff_hi;
+  uint16_t lo_mask = 7;
+  SID_msg_t SID_FC_msg_hi;
+  SID_msg_t SID_FC_msg_lo;
+ 
+  SID_FC_msg_hi.addr = SID_FLT_CUTOFF_HI;
+  SID_FC_msg_lo.addr = SID_FLT_CUTOFF_LO; 
+
+  if(cutoff_value > 2047)  //11 bits max
+    return -1;
+
+  cutoff_lo = lo_mask & cutoff_value;
+  cutoff_hi = cutoff_value >> 3;
+
+  SID_FC_msg_lo.data = cutoff_lo;
+  SID_FC_msg_hi.data = cutoff_hi;
+
+  SID_queue_one_msg(&global_SID_msg_queue, &SID_FC_msg_lo);
+  SID_queue_one_msg(&global_SID_msg_queue, &SID_FC_msg_hi);
+ }
+
+
+int SID_apply_filter_resonance(uint8_t resonance_value)
+ {
+   SID_msg_t SID_RES_msg;
+
+   SID_RES_msg.data = (resonance_value << 4)|15;
+   SID_RES_msg.addr = SID_FLT_RESO_ROUTE;
+   SID_queue_one_msg(&global_SID_msg_queue, &SID_RES_msg);
+ }
+
 
 SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue)
  {
@@ -144,7 +203,8 @@ int SID_synth_threads_init(void)
    global_SID_msg_queue.wpos = 0;
    
    rc = pthread_create(&threads[0], NULL, SID_msg_pipe_tx, (void *)t);
-   rc = pthread_create(&threads[1], NULL, software_LFO, (void *)t);
+   rc = pthread_create(&threads[1], NULL, software_LFO1, (void *)t);
+   rc = pthread_create(&threads[1], NULL, software_LFO2, (void *)t);
 
 }
 

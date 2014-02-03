@@ -33,11 +33,14 @@ int main() {
     //reset SID
     SID_via_tca6416_reset(global_i2c_1_descriptor, global_i2c_1_io);
 
-    //start various synth threads 
-    SID_synth_threads_init();
+    //start various synth threads
+    SID_synth_threads_init(); 
 
+    //init synth settings
+    SID_init_synth();
+  
     //set sound parameters
-    SID_msg.addr = SID_OSC1_ATTACK; SID_msg.data = 9;
+    SID_msg.addr = SID_OSC1_ATTACK; SID_msg.data = 7;
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
     SID_msg.addr = SID_OSC1_SUSTAIN; SID_msg.data = 0;
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
@@ -47,19 +50,14 @@ int main() {
     SID_msg.addr = SID_FLT_MODE_VOL; SID_msg.data = 31;
     SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
 
-    SID_msg.addr = SID_FLT_RESO_ROUTE; SID_msg.data = 17;
-    SID_queue_one_msg(&global_SID_msg_queue, &SID_msg);
-
     //play some note pattern
     while(counter < 100)
      {
        SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
        SID_play_note(0x0893, NOTE_EIGHTH ,BPM160);
-       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
+       SID_play_note(0x0893, NOTE_EIGHTH ,BPM160);
        SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
-       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
-       SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
-       SID_play_note(0x0449, NOTE_EIGHTH, BPM160);
        SID_play_note(0x0893, NOTE_EIGHTH, BPM160);
        counter++;
      }

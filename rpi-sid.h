@@ -34,8 +34,8 @@
 #define SID_OSC3_ATTACK 19
 #define SID_OSC3_SUSTAIN 20
 
-#define SID_FLT_CUTTOF_LO 21
-#define SID_FLT_CUTTOF_HI 22
+#define SID_FLT_CUTOFF_LO 21
+#define SID_FLT_CUTOFF_HI 22
 #define SID_FLT_RESO_ROUTE 23
 #define SID_FLT_MODE_VOL 24
 
@@ -80,10 +80,49 @@ uint8_t global_i2c_1_io;
 //synth data structures
 
 uint16_t software_LFO1_rate;
-uint8_t  software_LFO1_wave;
-uint8_t  software_LFO1_routing;
+uint8_t  software_LFO1_shape;
+uint8_t  software_LFO1_depth;
+uint16_t  software_LFO1_routing;
 
-// prototypes
+uint16_t software_LFO2_rate;
+uint8_t  software_LFO2_shape;
+uint8_t  software_LFO2_depth;
+uint16_t  software_LFO2_routing;
+
+#define LFO_ROUTING_NONE 0
+#define LFO_ROUTING_CUTOFF 1
+#define LFO_ROUTING_RESO 2
+#define LFO_ROUTING_PW1 4
+#define LFO_ROUTING_PW2 8
+#define LFO_ROUTING_PW3 16
+#define LFO_ROUTING_DETUNE1 32
+#define LFO_ROUTING_DETUNE2 64
+#define LFO_ROUTING_DETUNE3 128
+
+#define LFO_SHAPE_SINE 1
+#define LFO_SHAPE_TRIANGLE 2
+#define LFO_SHAPE_SAWTOOTH 4
+#define LFO_SHAPE_SQUARE 8
+#define LFO_SHAPE_SH 16
+
+//SID register mirror (only for multipurpose registers)
+
+uint8_t SID_OSC1_control_register;
+uint8_t SID_OSC1_attack_decay_register;
+uint8_t SID_OSC1_sustain_release_register;
+
+uint8_t SID_OSC2_control_register;
+uint8_t SID_OSC2_attack_decay_register;
+uint8_t SID_OSC2_sustain_release_register;
+
+uint8_t SID_OSC3_control_register;
+uint8_t SID_OSC3_attack_decay_register;
+uint8_t SID_OSC3_sustain_release_register;
+
+uint8_t SID_reso_route_register;
+uint8_t SID_mode_vol_register;
+
+//prototypes
 
 int SID_via_tca6416_reset(uint8_t i2c_dev, uint8_t ic_addr);
 int SID_via_tca6416_write(uint8_t i2c_dev, uint8_t ic_addr, uint8_t addr, uint8_t data);
@@ -91,5 +130,8 @@ int SID_write_msg(uint8_t i2c_dev, uint8_t ic_addr, SID_msg_t *SID_msg);
 int SID_play_note(uint16_t note, uint8_t len, uint8_t bpm);
 int SID_queue_one_msg(SID_msg_queue_t *queue, SID_msg_t *SID_msg);
 SID_msg_t *SID_dequeue_one_msg(SID_msg_queue_t *queue);
+
+int SID_apply_filter_cutoff(uint16_t cutoff_value);
+int SID_apply_filter_resonance(uint8_t resonance_value);
 
 //end
